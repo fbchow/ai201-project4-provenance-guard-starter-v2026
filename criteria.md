@@ -42,63 +42,45 @@ Two things worth knowing before you pick numbers:
   a **miss**.
 
 ---
-## 1.
 
-<!-- Your criterion. It must name a number. -->
-
-
+## 1. Allow at most 1 false positive in 10
 
 **Why this target:**
-
-
+I allow at most 1 false positive in 10 because on a writing site accusation costs more than a missed detection. The user risks losing their job and reputational standing, so we need to be more certain about who we flag.
 
 ---
 
-## 2.
-
-<!-- Your criterion. -->
-
-
+## 2. Text I judge borderline scores between 0.4 and 0.6 in at least 4 out of 5 cases
 
 **Why this target:**
-
-
+I allow 1 in 5 cases because the user whose borderline text falls in the 1 in 5 outside of a 0.4-0.6 band might be uncertain themselves or use some portion of AI assisted writing.
 
 ---
 
-## 3.
+## 3. All 3 labels reachable
 
-<!-- Your criterion. -->
-
-
+Across 3 test inputs I choose, each of `ai`, `human`, and `unsure` is returned at least 1 time.
 
 **Why this target:**
-
-
+Every submission gets a label, so an unreachable one silently distorts the others. If `ai` can't be returned, the detector never does its job. If `human` can't be returned, writers are never cleared and the appeal path absorbs every incorrect flag. If `unsure` can't be reached, borderline text is forced into an accusation or a clearance. This is a risk because `score_to_label` is still a placeholder and a flat style signal could leave a label out of reach. A single hit per label confirms each one can be produced at all.
 
 ---
 
-## 4.
-
-<!-- Your criterion. -->
-
-
+## 4. Every decision appears in the audit log.
 
 **Why this target:**
+When a user wants to appeal their decision, then they will naturally request the log trace for an explanation of how the decision came to be. Every decision the service makes need to be logged. The one time that a decision does not get logged and missing could risk failing to fulfill the one crucial time where data provenance is requested by the user.
 
-
+In the real world, failing to fulfill compliance could lead to lawsuits and fines.
 
 ---
 
-## 5.
-
-<!-- Your criterion. -->
-
-
+## 5. Appeal always changes status
+Every appeal changes status and gets recorded with one new record to the audit log.
 
 **Why this target:**
 
-
+An appeal is the only recourse that a wrongly flagged writer has, so it's important this action gets implemented. If the status doesn't get changed with the service flow, then the writer still sees the "AI" flag. If the appeal fails to be recorded in the log, we can't confirm the appeal happened or if the status was a duplicate entry.
 
 ---
 

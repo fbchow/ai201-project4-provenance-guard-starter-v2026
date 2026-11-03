@@ -122,13 +122,20 @@
      diagnostics. -->
 
 ```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
+ $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+  -d '{"text": "some writing, yes queen just be the best you. and if they argue, then let the me be an dhave peace. my barnd of crazy is priceless!", "creator_id": "me"}' 
 ```
 
 ```json
-
+{
+  "confidence": 0.73,
+  "content_id": "cc641a3d-76d1-4cac-9ff9-56187f6ffa56",
+  "guess": "ai",
+  "label": "likely_ai",
+  "model_score": 0.0155,
+  "styel_score": 0.65
+}
 ```
 
 **An appeal**
@@ -150,7 +157,22 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 ```
 
 ```json
-
+{
+  "count": 1,
+  "entries": [
+    {
+      "combined_score": 0.5,
+      "content_id": "cc641a3d-76d1-4cac-9ff9-56187f6ffa56",
+      "creator_id": "me",
+      "guess": "ai",
+      "label": "likely_ai",
+      "model_score": 0.5,
+      "status": "decided",
+      "style_score": 0.5,
+      "timestamp": "2026-11-02T23:58:29+00:00"
+    }
+  ]
+}
 ```
 
 ---

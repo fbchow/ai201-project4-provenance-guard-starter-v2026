@@ -24,12 +24,14 @@ Routes:
     GET  /health      is the service up, and is the model loaded
 """
 
-import uuid
 
+from audit import log_decision
+from detector import model_signal
 from flask import Flask, jsonify, request
 
 import audit
 import config
+import uuid
 
 app = Flask(__name__)
 
@@ -200,6 +202,27 @@ def submit():
     a malformed input is one of the most common real failures there is.
     """
     content_id = str(uuid.uuid4())
+   
+    payload = request.get_json(silent=True) or {}
+    creator_id = payload.get("creator_id")
+    text = payload.get("text")
+
+    # raise exception error because if text is missing, you would get {}
+    if not text or not text.strip():
+        return jsonify({"error": "text is required"}), 400
+
+    model_score = model_signal(text)
+
+    # log decisions
+    log_decision(
+        content_id = content_id,
+        creator_id = creator_id,
+        guess = "ai",
+        model_score = 0.5,
+        style_score = 0.5,
+        combined_score = 0.5,
+        label = "likely_ai",
+        status = "decided")
 
     # temporary placeholder
     return jsonify({
@@ -207,7 +230,7 @@ def submit():
         "guess": "ai",
         "confidence": 0.73,
         "label": "likely_ai",
-        "model_score": 0.81,  # from detector.py
+        "model_score": model_score,  # from detector.py
         "styel_score": 0.65   # from styleometer.py
     })
 

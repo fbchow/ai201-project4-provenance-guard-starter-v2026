@@ -21,7 +21,7 @@ import config
 
 def combine_signals(model_score: float, style_score: float) -> float:
     """
-    Combine two 0–1 signals into one 0–1 score. ← TODO (Milestone 4)
+    Combine two 0–1 signals into one 0–1 score.
 
     Both inputs point the same way: higher means more likely AI. Your output
     should too.
@@ -52,11 +52,16 @@ def combine_signals(model_score: float, style_score: float) -> float:
     The weights in config.py are placeholders. Change them, or ignore them and
     write a different rule.
     """
-    # TODO: replace this
-    return (
+    average = (
         config.WEIGHT_MODEL_SIGNAL * model_score
         + config.WEIGHT_STYLE_SIGNAL * style_score
     )
+    # When the signals split, one of them is probably fooled. Don't let that
+    # alone produce a confident AI call: stop just short of the AI threshold.
+    # Splits never push a score toward AI-confidence, only away from it.
+    if abs(model_score - style_score) > config.DISAGREEMENT_LIMIT:
+        return min(average, config.AI_THRESHOLD - 0.01)
+    return average
 
 
 def score_to_label(score: float) -> tuple[str, str]:

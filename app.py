@@ -27,6 +27,8 @@ Routes:
 
 from audit import log_decision
 from detector import model_signal
+from scoring import combine_signals
+from stylometry import style_signal
 from flask import Flask, jsonify, request
 
 import audit
@@ -212,26 +214,29 @@ def submit():
         return jsonify({"error": "text is required"}), 400
 
     model_score = model_signal(text)
+    style_score = style_signal(text)
+    combined = combine_signals(model_score, style_score)
 
-    # log decisions
+    # Milestone 5 replaces these placeholders with score_to_label
+    guess, label = "unsure", "unlabelled"
+
     log_decision(
         content_id = content_id,
         creator_id = creator_id,
-        guess = "ai",
-        model_score = 0.5,
-        style_score = 0.5,
-        combined_score = 0.5,
-        label = "likely_ai",
+        guess = guess,
+        model_score = model_score,
+        style_score = style_score,
+        combined_score = combined,
+        label = label,
         status = "decided")
 
-    # temporary placeholder
     return jsonify({
         "content_id": content_id,
-        "guess": "ai",
-        "confidence": 0.73,
-        "label": "likely_ai",
-        "model_score": model_score,  # from detector.py
-        "styel_score": 0.65   # from styleometer.py
+        "guess": guess,
+        "confidence": combined,
+        "label": label,
+        "model_score": model_score,
+        "style_score": style_score,
     })
 
 @app.post("/appeal")

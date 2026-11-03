@@ -31,7 +31,10 @@ anything together:
 """
 
 import re
+
+import config
 import statistics
+from string import punctuation
 
 
 def sentences(text: str) -> list[str]:
@@ -49,7 +52,7 @@ def words(text: str) -> list[str]:
 
 def sentence_length_spread(text: str) -> float:
     """
-    How much sentence length varies. ← TODO
+    How much sentence length varies.
 
     Returns:
         A float. Decide yourself what scale it's on and which direction means
@@ -64,13 +67,16 @@ def sentence_length_spread(text: str) -> float:
     `stdev` raises on fewer than two values. Decide what that should return
     before the attack set decides for you.
     """
-    # TODO: replace this
-    return 0.0
+    sent_lens = [len(words(sent)) for sent in sentences(text)]
+    if len(sent_lens) < 2:
+        return 0.0
+    mean = statistics.mean(sent_lens)
+    return statistics.stdev(sent_lens) / mean if mean else 0.0
 
 
 def type_token_ratio(text: str) -> float:
     """
-    Unique words over total words. ← TODO
+    Unique words over total words.
 
     Returns:
         A float between 0 and 1. Higher means more varied vocabulary.
@@ -80,13 +86,16 @@ def type_token_ratio(text: str) -> float:
     directly comparable on it, and if your test inputs vary a lot in length,
     that alone can look like a signal.
     """
-    # TODO: replace this
-    return 0.0
+    word_list = words(text)
+    total_words = len(word_list)
+    unique_words = len(set(word_list))
+    
+    return unique_words / total_words if total_words else 0.0
 
 
 def punctuation_density(text: str) -> float:
     """
-    How much punctuation, relative to length. ← TODO
+    How much punctuation, relative to length.
 
     Returns:
         A float. Whether you count all punctuation or only some kinds — commas,
@@ -94,15 +103,15 @@ def punctuation_density(text: str) -> float:
         more interesting than full stops, because they vary more between
         writers.
     """
-    # TODO: replace this
-    return 0.0
+    punctuation_count = sum(1 for ch in text if ch in punctuation)
+    return punctuation_count / len(text) if text else 0.0
 
 
 # ── Combining them ───────────────────────────────────────────────────────────
 
 def style_signal(text: str) -> float:
     """
-    The style signal as a 0–1 score. **Higher means more likely AI.** ← TODO
+    The style signal as a 0–1 score. **Higher means more likely AI.**
 
     Combine your three measures into one number. Same direction as
     `detector.model_signal`, so that `scoring.combine_signals` can treat them
@@ -122,8 +131,20 @@ def style_signal(text: str) -> float:
     you trust it. Plain and ordinary, not formal: formal prose reads as *human*
     to signal one, and it is plain writing that gets accused.
     """
-    # TODO: replace this
-    return 0.5
+    # Each measure becomes an "AI-ness" score in 0-1 (1 = more AI-like).
+    # spread >= 0, so 1/(1+spread) is 1 at no variation and falls toward 0.
+    spread_ai = 1.0 / (1.0 + sentence_length_spread(text))
+    # type-token ratio is already 0-1; more variety means more human.
+    ttr_ai = 1.0 - type_token_ratio(text)
+    # k / (k + density): 0.5 at a typical density, higher when punctuation is sparse.
+    k = config.TYPICAL_PUNCT_DENSITY
+    punct_ai = k / (k + punctuation_density(text))
+
+    return (
+        config.WEIGHT_STYLE_SPREAD * spread_ai
+        + config.WEIGHT_STYLE_TTR * ttr_ai
+        + config.WEIGHT_STYLE_PUNCT * punct_ai
+    )
 
 
 if __name__ == "__main__":

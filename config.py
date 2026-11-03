@@ -54,8 +54,21 @@ DETECTOR_MAX_TOKENS = 400
 # down BEFORE you code it, and to put the numbers in your README. Whatever you
 # decide, it goes here.
 
-WEIGHT_MODEL_SIGNAL = 0.5
-WEIGHT_STYLE_SIGNAL = 0.5
+WEIGHT_MODEL_SIGNAL = 0.65
+WEIGHT_STYLE_SIGNAL = 0.35
+
+# If the two signals differ by more than this, the combined score is not
+# allowed into the high-confidence AI band.
+DISAGREEMENT_LIMIT = 0.3
+
+
+# Weights inside style_signal (should sum to 1.0).
+WEIGHT_STYLE_SPREAD = 0.4
+WEIGHT_STYLE_PUNCT = 0.4
+WEIGHT_STYLE_TTR = 0.2
+
+# Punctuation density that counts as neither AI-like nor human-like.
+TYPICAL_PUNCT_DENSITY = 0.03
 
 
 # ─── Thresholds (Milestone 5) ────────────────────────────────────────────────

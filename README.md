@@ -1,45 +1,19 @@
 # Provenance Guard
 
-> ### 👋 Start here
->
-> **New to this repo? Read [RUNNING.md](RUNNING.md) first.**
->
-> Once `python test.py` passes, in one terminal:
->
-> ```bash
-> python app.py
-> ```
->
-> and in another:
->
-> ```bash
-> curl -X POST http://127.0.0.1:5000/ping \
->   -H "Content-Type: application/json" \
->   -d '{"message": "hello"}'
-> ```
->
-> That's a web service. Something sent it text and it sent something back.
-> Everything this unit is filling in the middle.
->
-> **The rest of this file is your submission.** Fill it in as you go.
-
 ---
 
-<!-- ─────────────────────────────────────────────────────────────────────────
-     Unit 7 asks for the first five sections. Unit 8 adds the five below.
-
-     Everything is pasted as TEXT. A pasted curl response gets full credit;
-     a picture of your terminal gets none.
-     ───────────────────────────────────────────────────────────────────────── -->
-
-<!-- ═══════════════════════ UNIT 7 — THE BUILD ═══════════════════════ -->
-
 ## What This Does
-
+1. User submits a JSON paylod with text and a creator_id.
+2. The text perlexity score is calculated and converted to an interpretable model signal score.
+3. The decision is logged.
+4. Calculate style signal attributes: sentence length spread, type token ratio, and punctuation density.
+5. Combine the scores into a single style signal store.
+6. The style score is logged.
+7. The model signal score and style signal score is combined.
+8. Post answer
+9. Log answer
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
-
-
 
 ---
 
@@ -54,18 +28,25 @@
 ### Signal one — the model signal
 
 **What it measures:**
+Perplexity, which is how surprised the model is by te text. A lower perplexity means that the text is more predictable. This signal
+rewards common words in short, ordinary sentences. It returns a positive number. Typical values land roughly between 10 and 200, but that range shifts with topic and length, which is one reason the raw number isn't what we score on.
 
 **Why that might differ between human and AI writing:**
+AI writing is in general very clean and spotless with less spelling typos and grammatical mistakes.
 
 **What it can't see:**
+Some people just naturally write with short concise setences. Some authors, who write English as a second language, may write in a terse way.
 
 ### Signal two — the style signal
 
 **What it measures:**
+The shape of the text and how much it varies.
 
 **Why that might differ between human and AI writing:**
+Human text may be more varied in terms of length, punctuation use, and unique word choice.
 
 **What it can't see:**
+Deliberate hacks, like using many instances of random punctuation and chracters with no meaning. Many non-sensical unique words may also be AI generated to deliberately confuse the model.
 
 ### The combining rule
 
@@ -73,8 +54,12 @@
      signals disagree? -->
 
 **The rule:**
+A weighted average that leans on the model signal, with one safeguard. If the two signals disagree by a lot, the combined score is capped just below the "AI" threshold, so a split can make us unsure but can never produce a confident AI call on its own. I chose this because a wrong accusation of a real writer costs more than missing some AI text. The style signal also has a known blind spot: it rates formal human writing as the most AI-like input, so it shouldn't be able to condemn a text alone.
 
 **The numbers:**
+- `combined = 0.65 × model_score + 0.35 × style_score` (`WEIGHT_MODEL_SIGNAL`, `WEIGHT_STYLE_SIGNAL` in `config.py`)
+- If `|model_score − style_score| > 0.3` (`DISAGREEMENT_LIMIT`), then `combined = min(combined, 0.64)`, which is `AI_THRESHOLD − 0.01`.
+- Both signals are 0–1, higher means more likely AI, so the output is too.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -82,8 +67,13 @@
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
+Lightly-edited AI: the style signal reads it as 0.48 (the edits add varied punctuation and uneven sentences), while the model signal still sees predictable prose. The model score below (0.85) is illustrative, not measured yet; replace it with the real output of `python calibration.py`.
 
+| model | style | weighted average | split > 0.3? | combined |
+|---|---|---|---|---|
+| 0.85 | 0.48 | 0.72 | yes (0.37) | **0.64**, capped: "unsure" |
 
+Without the cap this would score as confident AI on a text where one signal was clearly fooled, so the rule downgrades it to "unsure". The cost is that real AI text with a fooled style signal is never flagged as confidently AI.
 
 ---
 
@@ -181,9 +171,9 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help understanding how the payload gets passed in the Flask framework to each function route.
+- *What came back:* Suggestion to directly access payload using json library.
+- *What I changed:* Directly parced `creator_id` and `text` in `submit()` function from the user's json payload input.
 
 **Moment 2**
 

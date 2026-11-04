@@ -86,15 +86,15 @@ Without the cap this would score as confident AI on a text where one signal was 
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.0-0.35  | Probably written by a person. |
+| unsure | 0.35-0.65 |Not as confident, could be either AI or human.  |
+| high-confidence AI |0.65-1.00  | Probably written by AI |
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
-
+I wanted to mention being uncertain without accusing the writer.
 
 
 ---
@@ -114,17 +114,19 @@ Without the cap this would score as confident AI on a text where one signal was 
 ```bash
  $ curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "some writing, yes queen just be the best you. and if they argue, then let the me be an dhave peace. my barnd of crazy is priceless!", "creator_id": "me"}' 
+  -d '{"text":  "Artificial intelligence is transforming the way we live and work in numerous ways. It offers significant benefits across a wide range of industries, including healthcare, education, and finance.Moreover, it is important to consider the ethical implications of these technologies. By fostering collaboration between researchers,   policymakers, and the public, we can ensure that AI develops in a responsible and beneficial manner. In conclusion, the future of AI holds immense potential, provided that we approach it with care and foresight",
+     "creator_id": "intelligentphony67"'
+
 ```
 
 ```json
 {
-  "confidence": 0.73,
-  "content_id": "cc641a3d-76d1-4cac-9ff9-56187f6ffa56",
+  "confidence": 0.749869574733391,
+  "content_id": "8522e630-e78e-4094-a26d-ee0943f757a4",
   "guess": "ai",
-  "label": "likely_ai",
-  "model_score": 0.0155,
-  "styel_score": 0.65
+  "label": "Probably written by AI.",
+  "model_score": 0.8421,
+  "style_score": 0.57858449923826
 }
 ```
 

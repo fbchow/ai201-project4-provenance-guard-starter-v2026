@@ -27,6 +27,7 @@ Routes:
 
 from audit import log_decision
 from detector import model_signal
+from scoring import score_to_label
 from scoring import combine_signals
 from stylometry import style_signal
 from flask import Flask, jsonify, request
@@ -217,8 +218,7 @@ def submit():
     style_score = style_signal(text)
     combined = combine_signals(model_score, style_score)
 
-    # Milestone 5 replaces these placeholders with score_to_label
-    guess, label = "unsure", "unlabelled"
+    guess, label = score_to_label(combined)
 
     log_decision(
         content_id = content_id,

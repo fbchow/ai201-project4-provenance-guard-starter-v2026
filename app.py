@@ -23,18 +23,17 @@ Routes:
     GET  /log         the audit log. Already works
     GET  /health      is the service up, and is the model loaded
 """
+import audit
+import config
+import uuid
 
-
-from audit import log_decision
 from detector import model_signal
 from scoring import score_to_label
 from scoring import combine_signals
 from stylometry import style_signal
 from flask import Flask, jsonify, request
 
-import audit
-import config
-import uuid
+
 
 app = Flask(__name__)
 
@@ -160,7 +159,6 @@ def health():
 def submit():
     """
     Take a piece of text, decide about it, log the decision, answer.
-    ← TODO — Milestones 3, 4 and 5
 
     Expects JSON:
         {"text": "...", "creator_id": "..."}
@@ -220,7 +218,7 @@ def submit():
 
     guess, label = score_to_label(combined)
 
-    log_decision(
+    audit.log_decision(
         content_id = content_id,
         creator_id = creator_id,
         guess = guess,
@@ -242,7 +240,7 @@ def submit():
 @app.post("/appeal")
 def appeal():
     """
-    A writer says you got it wrong. ← TODO — Milestone 5
+    A writer says you got it wrong.
 
     Expects JSON:
         {"content_id": "...", "reasoning": "..."}
@@ -261,12 +259,26 @@ def appeal():
     """
     payload = request.get_json(silent=True) or {}
 
-    # TODO: delete this and build the route.
-    return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+
+    entries = audit.entries_for(content_id)
+    if entries:
+        # parse field from the most recent log entry
+        creator_id = entries[-1].get("creator_id")
+        audit.log_appeal(content_id, creator_id, reasoning)
+        return jsonify({
+        "content_id": content_id,
+        "creator_id": creator_id,
+        "reasoning": reasoning,
+        "status": "appeal",
+        })
+    else:
+        return jsonify({
+            "error": "not_found",
+            "message": "content_id is not found. Please enter an existing content_id.",
+            "you_sent": payload,
+        }), 400
 
 
 # ── Already works ─────────────────────────────────────────────────────────────

@@ -135,11 +135,16 @@ I wanted to mention being uncertain without accusing the writer.
 ```bash
 $ curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+  -d '{"content_id": "8522e630-e78e-4094-a26d-ee0943f757a4", "reasoning": "Had assistance but still wrote most of the text."}'
 ```
 
 ```json
-
+{
+  "content_id": "8522e630-e78e-4094-a26d-ee0943f757a4",
+  "creator_id": null,
+  "reasoning": "Had assistance but still wrote most of the text.",
+  "status": "appeal"
+}
 ```
 
 **What the log shows afterwards**
@@ -150,18 +155,37 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ```json
 {
-  "count": 1,
+  "count": 3,
   "entries": [
     {
-      "combined_score": 0.5,
-      "content_id": "cc641a3d-76d1-4cac-9ff9-56187f6ffa56",
-      "creator_id": "me",
+      "combined_score": 0.749869574733391,
+      "content_id": "d19c0946-9cff-4bed-931e-22091ae06f25",
+      "creator_id": "intelligentphony67",
       "guess": "ai",
-      "label": "likely_ai",
-      "model_score": 0.5,
+      "label": "Probably written by AI.",
+      "model_score": 0.8421,
       "status": "decided",
-      "style_score": 0.5,
-      "timestamp": "2026-11-02T23:58:29+00:00"
+      "style_score": 0.57858449923826,
+      "timestamp": "2026-11-04T06:13:48+00:00"
+    },
+    {
+      "combined_score": 0.749869574733391,
+      "content_id": "8522e630-e78e-4094-a26d-ee0943f757a4",
+      "creator_id": "intelligentphony67",
+      "guess": "ai",
+      "label": "Probably written by AI.",
+      "model_score": 0.8421,
+      "status": "decided",
+      "style_score": 0.57858449923826,
+      "timestamp": "2026-11-04T06:15:02+00:00"
+    },
+    {
+      "content_id": "8522e630-e78e-4094-a26d-ee0943f757a4",
+      "creator_id": "intelligentphony67",
+      "event": "appeal",
+      "reasoning": "Had assistance but still wrote most of the text.",
+      "status": "under_review",
+      "timestamp": "2026-11-04T06:47:06+00:00"
     }
   ]
 }
@@ -179,9 +203,9 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help normalizing the style metrics. I originally just took the inverse of the metrics to make the direction match the interpretation of "likely AI" and "likely human".
+- *What came back:* Multiple suggestions, such as taking the logit.
+- *What I changed:* I didn't want to normalize the metrics using so many additional hyperparameters to keep track of and explain. I wanted to keep the scaling of the metrics simpler and interpretable rather than complex and precise.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 

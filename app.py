@@ -204,13 +204,27 @@ def submit():
     """
     content_id = str(uuid.uuid4())
    
-    payload = request.get_json(silent=True) or {}
+    # Validate the request BEFORE any signal sees it. Every rejection is a 400
+    # and is written to the audit log.
+    def reject(reason, creator=None):
+        audit.log_rejection(creator if isinstance(creator, str) else None, reason)
+        return jsonify({"error": reason}), 400
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return reject("body must be a JSON object")
+
     creator_id = payload.get("creator_id")
     text = payload.get("text")
 
-    # raise exception error because if text is missing, you would get {}
-    if not text or not text.strip():
-        return jsonify({"error": "text is required"}), 400
+    if not isinstance(creator_id, str) or not creator_id.strip():
+        return reject("creator_id must be a non-empty string")
+    if not isinstance(text, str) or not text.strip():
+        return reject("text must be a non-empty string", creator_id)
+    if not any(c.isalpha() for c in text):
+        return reject("text must contain letters", creator_id)
+    if len(text.split()) < 2:
+        return reject("text is too short to score", creator_id)
 
     model_score = model_signal(text)
     style_score = style_signal(text)

@@ -810,19 +810,13 @@ from `logs/audit.jsonl`
 
 **Diagnoses**
 
-<!-- For each miss AND each broken attack: the stage and the mechanism.
+**Criterion 3 (label coverage) missed in all three trials: only 2 of 3 labels appeared (`human` and `unsure`, never `ai`).**
 
-     Your service has five stages: the route, signal one, signal two, the
-     combining rule, and the label mapping.
-
-     Not a diagnosis:  "The evasion attacks got through."
-     A diagnosis:      "Four evasion inputs got through. All four had typos
-                        added to AI-generated text. My second signal measures
-                        word variety, and typos raise word variety — so it read
-                        them as more human. My combining rule weights that
-                        signal at 0.6, so it dragged the whole score down."
-
-     Look for a pattern. Five failures on one signal is one problem, not five. -->
+- **Stage:** the combining rule (`scoring.py::combine_signals`).
+- **What happened:** My intended `ai` input ("I don't know who I will be in the future...") scored model 0.874 and style 0.424. The plain average is 0.716, which would be `ai`. But the signals differ by 0.45, more than the 0.30 limit, so the rule capped the score at 0.64 and the label became `unsure`.
+- **Mechanism:** The cap is on purpose: a split between signals can never produce a confident AI call. So `ai` needs *both* signals high. My short, plain test text looked predictable to signal one but human-ish to signal two, which is exactly the split the cap blocks.
+- **The `ai` label is still reachable:** FP02-FP05 and MF05-MF08 in the attack run returned `ai`. I picked a bad test input, not a dead label.
+- **Fix:** use a longer, formal, clearly AI-style input for the `ai` case (like the sample run: model 0.84, style 0.58). Don't loosen the cap or the target.
 
 
 
@@ -831,37 +825,119 @@ from `logs/audit.jsonl`
 ## The Improvement
 
 **What I changed:**
+Added input validation at the start of `submit()` in `app.py`, before any signal runs. A request now gets a 400 (and a rejection entry in the audit log) if the body isn't a JSON object, `creator_id` isn't a non-empty string, `text` isn't a non-empty string, `text` has no letters, or `text` is under 2 words. I changed nothing else: weights, thresholds, and signals are the same.
 
 **Which diagnosis pointed at it:**
+The route stage. In the Before run, malformed input either crashed the route (500 on MF02, RQ03, RQ04, RQ07, RQ12) or reached the signals and got scored like real writing (MF03, MF04, RQ02, RQ06).
 
 ### Attack Run — After
 
-<!-- Same format. `run_attacks.py --label after` -->
+```
+run_attacks.py --label after
+```
+| ID | Family | Targeting | Status | Content ID | Guess | Score | Verdict |
+|---|---|---|---|---|---|---|---|
+| EV01 | evasion | signal two: typos raise word variety | 200 | `22583f4a-a9b7-403f-b7ab-25ffaa6a6cc0` | human | 0.326 |  |
+| EV02 | evasion | signal two: broken-up sentences raise length spread | 200 | `c4a1c61b-6875-4d60-b4f2-03e8e4d49ca7` | unsure | 0.559 |  |
+| EV03 | evasion | signal two: a pasted quotation changes the shape | 200 | `ed3e7016-2cd1-4242-91d4-cfc1b163feca` | unsure | 0.617 |  |
+| EV04 | evasion | signal one: unusual words raise perplexity | 200 | `7637dd7a-c487-4fe5-86da-ef8410e7591e` | unsure | 0.613 |  |
+| EV05 | evasion | both signals: heavy human editing pass | 200 | `a47eb3f7-a9cd-41e7-8b96-4b9b2b3f1770` | unsure | 0.381 |  |
+| EV06 | evasion | signal two: one very long sentence and one very short | 200 | `7e89b5e3-8494-4171-821d-ec56c81883eb` | unsure | 0.553 |  |
+| EV07 | evasion | signal two: padding with punctuation | 200 | `0bc73554-fab1-4d34-a660-d4ed4876a293` | unsure | 0.608 |  |
+| EV08 | evasion | signal one: text below the token window | 200 | `a2872e1f-9935-443f-96ae-fc694b3f53d8` | human | 0.338 |  |
+| EV09 | evasion | both: AI text with a human opening paragraph bolted on | 200 | `67102ff0-fb29-4c9f-bb45-51acd6eb39d3` | unsure | 0.642 |  |
+| EV10 | evasion | signal two: repeated stanza structure | 200 | `0ddcab3e-154a-4c87-89f9-251d8dd3bdc2` | ai | 0.903 |  |
+| FP01 | false_positive | plain, clear human writing with no flourishes | 200 | `548c9073-42f3-4b91-ac10-acf077f5678d` | unsure | 0.603 |  |
+| FP02 | false_positive | human writing in a formal register | 200 | `a96578a6-0a17-4c0b-b60a-9e19892f17c2` | ai | 0.703 |  |
+| FP03 | false_positive | a non-native English speaker writing carefully | 200 | `52520907-670d-4dba-b1dd-2f9b3e171c24` | ai | 0.738 |  |
+| FP04 | false_positive | a student essay written to a rubric | 200 | `63bc1ad4-4f0b-4b21-a9ca-026d3e247a94` | ai | 0.741 |  |
+| FP05 | false_positive | technical documentation written by a person | 200 | `e92239c4-9985-4e01-a86e-189c24054055` | ai | 0.738 |  |
+| FP06 | false_positive | a person imitating a formal template | 200 | `4aeb5685-4de1-440d-9b1d-7ba6b2c20ed3` | unsure | 0.640 |  |
+| FP07 | false_positive | human writing that repeats a phrase deliberately | 200 | `0039a612-6348-4f0f-9aa9-da1518113d06` | unsure | 0.640 |  |
+| FP08 | false_positive | very short genuine human submission | 200 | `6bc1600b-a842-4739-9fe6-77b9c4439cb5` | human | 0.344 |  |
+| PI01 | prompt_injection | instruction to ignore the check | 200 | `da581a2e-fe2e-4446-87ac-57e624be2df3` | unsure | 0.482 |  |
+| PI02 | prompt_injection | instruction disguised as a system message | 200 | `ce238936-22ea-4f81-91a4-90528591b1c8` | human | 0.290 |  |
+| PI03 | prompt_injection | instruction wrapped in the writer's voice | 200 | `4119494d-97fd-4a30-b5b9-1fc3ae8e5ee6` | unsure | 0.583 |  |
+| PI04 | prompt_injection | attempt to make the label text hostile | 200 | `7b39d448-636b-48aa-8010-15e3b5f74564` | unsure | 0.480 |  |
+| PI05 | prompt_injection | attempt to inject into the audit log | 200 | `e2e2147c-c94b-43cb-8356-93e5f6518e71` | unsure | 0.547 |  |
+| PI06 | prompt_injection | instruction plus real human text | 200 | `8aa65c7c-7791-4f01-bae7-c94f79599ae8` | unsure | 0.567 |  |
+| MF01 | malformed | text is only whitespace | 400 | `—` | — | — |  |
+| MF02 | malformed | text is a single character | 400 | `—` | — | — |  |
+| MF03 | malformed | text is control characters | 200 | `4824e52e-19ca-4316-a6ce-0718f6c08ac2` | human | 0.174 |  |
+| MF04 | malformed | text is only punctuation | 400 | `—` | — | — |  |
+| MF05 | malformed | text is a very long single word | 400 | `—` | — | — |  |
+| MF06 | malformed | text is emoji only | 400 | `—` | — | — |  |
+| MF07 | malformed | text is right-to-left script | 200 | `67d8423a-11ae-4782-b137-8cb5a4842d47` | ai | 0.905 |  |
+| MF08 | malformed | text is 60,000 characters | 200 | `396b6d9b-2162-4cae-a302-383738b88b56` | ai | 0.895 |  |
+| RQ01 | malformed | no text field at all | 400 | `—` | — | — |  |
+| RQ02 | malformed | no creator_id | 400 | `—` | — | — |  |
+| RQ03 | malformed | text is a number | 400 | `—` | — | — |  |
+| RQ04 | malformed | text is a list | 400 | `—` | — | — |  |
+| RQ05 | malformed | text is null | 400 | `—` | — | — |  |
+| RQ06 | malformed | creator_id is an object | 400 | `—` | — | — |  |
+| RQ07 | malformed | body is a JSON array, not an object | 400 | `—` | — | — |  |
+| RQ08 | malformed | body is unparseable JSON | 400 | `—` | — | — |  |
+| RQ09 | malformed | body is empty | 400 | `—` | — | — |  |
+| RQ10 | malformed | body is form-encoded, not JSON | 400 | `—` | — | — |  |
+| RQ11 | malformed | body is JSON claiming to be plain text | 400 | `—` | — | — |  |
+| RQ12 | malformed | deeply nested JSON | 400 | `—` | — | — |  |
+| FL01_01 | flood_same_creator | 20 rapid submissions from one creator | 200 | `fb56a2e4-074d-4c93-8de0-b2474e7e6ca4` | human | 0.246 |  |
+| FL01_02 | flood_same_creator | 20 rapid submissions from one creator | 200 | `7ce11804-9997-452b-a0c0-7c6658748a0e` | human | 0.246 |  |
+| FL01_03 | flood_same_creator | 20 rapid submissions from one creator | 200 | `d035b82f-51a1-4f49-b141-b09eaccd24fe` | human | 0.246 |  |
+| FL01_04 | flood_same_creator | 20 rapid submissions from one creator | 200 | `9cfb35e3-3439-4415-ad41-0ee0bde6c9c5` | human | 0.246 |  |
+| FL01_05 | flood_same_creator | 20 rapid submissions from one creator | 200 | `3b3af90a-30e1-48f5-bf8a-9cfdb824a105` | human | 0.246 |  |
+| FL01_06 | flood_same_creator | 20 rapid submissions from one creator | 200 | `236b6aba-9020-4e0d-bdab-a610b5e27ea2` | human | 0.246 |  |
+| FL01_07 | flood_same_creator | 20 rapid submissions from one creator | 200 | `d5c6dfea-a8b3-431b-9f47-9ed6b6ba529c` | human | 0.246 |  |
+| FL01_08 | flood_same_creator | 20 rapid submissions from one creator | 200 | `cc5642d1-9521-4bad-9197-c174482a3dab` | human | 0.246 |  |
+| FL01_09 | flood_same_creator | 20 rapid submissions from one creator | 200 | `3dc86dee-050f-42d3-aa25-477e4dce2d41` | human | 0.246 |  |
+| FL01_10 | flood_same_creator | 20 rapid submissions from one creator | 200 | `c8c31dd1-9e5f-42dc-8c94-befae4b0ffbd` | human | 0.246 |  |
+| FL01_11 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — |  |
+| FL01_12 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — |  |
 
+### Before vs after (malformed rows)
 
+| Result | Before | After |
+|---|---|---|
+| 500 crashes | 5 (MF02, RQ03, RQ04, RQ07, RQ12) | 0 |
+| Garbage scored as a real submission (200) | MF03, MF04, RQ02, RQ06 | MF03 only |
+| Rows marked BROKE in the malformed families | 14 | 1 (MF03) |
 
 **Did it help, and how do I know:**
+Yes, for malformed input. Comparing the Before and After tables, every crash is now a clean 400 and the missing/wrong-type fields are rejected. The `human`/`ai` labels on real text did not change (same scores in both runs, e.g. FP02 0.703 and EV01 0.326), which is expected because I only touched the route.
 
-<!-- Widening the unsure band usually fixes one problem and creates another.
-     Reporting that trade honestly is worth full credit. -->
+The trade: the "fewer than 2 words" rule also rejects MF05 (one very long word). Before it was scored `ai` (0.928), so a genuine one-word submission is now refused instead of labelled. I think that's fine for a writing site, but it's a real change in behavior. MF03 (control characters) still returns 200 because it contains something my letter check accepts.
 
+### Run Log — After
 
+`python run_eval.py --label after` → `results/run_2026-11-10_1506_after.md`
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. false positive on my own writing | ≤ 1 of 10 | 1/10 | 1/10 | 1/10 | MET |
+| 3. label coverage | 3 of 3 | 2/3 | 2/3 | 2/3 | MISSED |
+| 2. borderline | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. decisions appear in audit log | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. Malformed text as 400 status | 4 of 4 | 3/4 | 3/4 | 3/4 | MISSED |
+
+**What changed vs Before:** nothing moved, which makes sense: my fix only touches how the route handles bad input, and the eval's bad-input cases were mostly rejected already. Criterion 3 is still missed for the same reason as before (the combining-rule cap).
+
+**Criterion 5 is a miss, and my Before row was wrong.** The 4th input is `"word " * 50000` (250,000 characters). It returns 200 and is scored `ai` (0.9975) in both runs, so the real score was 3/4 before too. I'd marked it 4/4. My validation checks type, letters, and word count but not maximum length. The fix would be a length cap that returns 400.
+
+**Criterion 4:** in this run all 57 decisions and all 9 rejections (3 per trial) appear in `logs/audit.jsonl`.
 
 ---
 
 ## What's Still Broken
 
-<!-- For each attack still getting through and each criterion still missed:
-     what you'd do, and why you stopped. -->
-
-
+- **FP02-FP05 (formal, non-native, rubric, and technical human writing labelled `ai`, 0.70-0.74).** Stage: signals plus combining rule. Both signals read clean, formal writing as AI-like, and the weighted average lands just over 0.65. I'd raise `AI_THRESHOLD` to about 0.75 or add a signal that doesn't punish formal style. I stopped because the assignment said one change, and this one costs real AI text getting through.
+- **EV01 and EV08 (typos, and text below the token window, labelled `human`).** Stage: signal two for EV01, signal one for EV08. Typos raise word variety, and short text gives the model too little to measure. I'd normalize typos before scoring and require a minimum length.
+- **PI02 (fake system message labelled `human`, 0.29).** The signals read text shape, not instructions, so this is mostly a signal problem I didn't dig into.
+- **Enormous text (criterion 5, and MF08 at 60,000 chars) still returns 200.** Stage: the route. I'd add a max-length check that returns 400. I stopped because I only made one change.
+- **MF03 (control characters still 200).** I'd strip control characters before the letter check.
+- **Criterion 3 (label coverage).** Still missed: the combining-rule cap blocks my `ai` test input. The fix is a better test input, not a code change.
 
 **The trade I'd make if this ran for real:**
-
-<!-- Two sentences. Fewer wrong accusations means more AI text getting through.
-     Say which way you'd go and WHO PAYS FOR IT. -->
-
-
+I'd widen the unsure band (raise the AI threshold) so fewer real writers get wrongly accused. The cost is paid by the site and honest readers, because more AI text gets through as "unsure", while a wrongly flagged writer risks their reputation.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 

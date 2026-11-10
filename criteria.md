@@ -50,10 +50,12 @@ I allow at most 1 false positive in 10 because on a writing site accusation cost
 
 ---
 
-## 2. Text I judge borderline scores between 0.4 and 0.6 in at least 4 out of 5 cases
+## 2. Text I judge borderline scores between 0.35-0.65 in at least 4 out of 5 cases
+
+*Edit:* I revised the numerical boundary before running the before eval because I originally wrote the incorrect range for what constitutes as an "unsure" label. I changed it from the (0.4-0.6) range to (0.35,0.65) range.
 
 **Why this target:**
-I allow 1 in 5 cases because the user whose borderline text falls in the 1 in 5 outside of a 0.4-0.6 band might be uncertain themselves or use some portion of AI assisted writing.
+I allow 1 in 5 cases because the user whose borderline text falls in the 1 in 5 outside of a 	0.35-0.65 band might be uncertain themselves or use some portion of AI assisted writing.
 
 ---
 
@@ -75,7 +77,16 @@ In the real world, failing to fulfill compliance could lead to lawsuits and fine
 
 ---
 
-## 5. Appeal always changes status
+## 5. Malformed text gets marked as a 400 status in 4 of 4 cases.
+
+Examples include: missing, empty text, missing creator_id.
+
+*Edit:* Changed to text input criterion because I can automate testing using the `run_eval.py` script. Before I had the appeal status change as a criterion but I find that is not reliable to perform by hand 15 times.
+
+**Why this target:**
+We want to make decisions on complete information. We do not want to make decisions without sufficient information. We want the app to flag explicitly as 400 status to say that the input is incorrect.
+
+### before: Appeal always changes status
 Every appeal changes status and gets recorded with one new record to the audit log.
 
 **Why this target:**

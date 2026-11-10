@@ -543,17 +543,269 @@ FP02 — `false_positive` human writing in a formal register
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+| 1. false positive on my own writing |  ≤ 1 of 10 | 1/10  | 1/10  | 1/10  | MET |
+| 3. label coverage | 3 of 3  | 2/3  |  2/3 |   2/3| MISSED|
+| 2. borderline | 4 of 5 | 5/5  | 5/5  | 5/5  | MET |
+| 4. decisions appear in audit log | 5 of 5  | 5/5 | 5/5 | 5/5 |MET   |
+| 5. Malformed text as 400 status | 4 of 4 | 4/4 | 4/4 | 4/4 | MET |
 
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it:
 
-```json
+```
+python run_eval.py --label before
+```
+```
+run_2026-11-10_1222_before.md
+```
 
+### 1. my own writing
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.560662126497534,
+    "model_score": 0.6317,
+    "style_score": 0.4287346471358111,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "I'm trying my best sometimes. It's so hard :(. Sometimes I get overtak"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.4695429970385865,
+    "model_score": 0.4335,
+    "style_score": 0.5364799915388185,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "I wonder what type of person I'll be in the future. It's hard to disce"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.218868015549358,
+    "model_score": 0.0855,
+    "style_score": 0.4665514729981657,
+    "label": "Probably written by a person.",
+    "sent": "Hey guys! i created a group caht to talk about our performance next we"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.2984039828309005,
+    "model_score": 0.2174,
+    "style_score": 0.44883995094543006,
+    "label": "Probably written by a person.",
+    "sent": "hey gurlie pop! i just was wondering if youd have some time next week "
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.21498499128980958,
+    "model_score": 0.1407,
+    "style_score": 0.3529428322565988,
+    "label": "Probably written by a person.",
+    "sent": "Hi Jane Doe! wassup! we haven't chatted in a hot minute :P, ifyou're f"
+  },
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.24061831652791638,
+    "model_score": 0.0589,
+    "style_score": 0.5780951900797611,
+    "label": "Probably written by a person.",
+    "sent": "AFter day light savings, the days rush into a dark abyss. but there is"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.3509688228155432,
+    "model_score": 0.3235,
+    "style_score": 0.401982350901552,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "\u00bfPreguntas? \u00a1hola se\u00f1orita juanita! C\u00f3mo est\u00e1, bien usted. Altavaz? he"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.7040112350915068,
+    "model_score": 0.7845,
+    "style_score": 0.554532100261448,
+    "label": "Probably written by AI.",
+    "sent": "This is my straightforward, robotic voice. Why would I lie to you? I h"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5084455788421339,
+    "model_score": 0.5118,
+    "style_score": 0.502215939548954,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "Yesterday, I saw my friend's dance performance. He was spectacular and"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.8382,
+    "style_score": 0.501032671661232,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "Yes, I agree to this contract. Yes, I agree to these conditions. Sure,"
+  }
+]
+```
+### 2. label coverage
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "I don't know who I will be in the future, and this is scary. I think i"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "To be or not to be, that is the presumptive question."
+  }
+]
+```
+### 3. borderline
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.361989059070169,
+    "model_score": 0.2068,
+    "style_score": 0.6501973116290541,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.3729970640689211,
+    "model_score": 0.3317,
+    "style_score": 0.44969161162548876,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "It makes complete sense that this feels hard \u2014 asking for help can fee"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.3706170025281593,
+    "model_score": 0.3189,
+    "style_score": 0.46666286436616955,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "Referrals are usually most effective when they\u2019re specific and easy to"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.3930658222290804,
+    "model_score": 0.3341,
+    "style_score": 0.5025737777973724,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "You don\u2019t have to do it every day either \u2014 even two or three mornings "
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "sent": "To be or not to be, that is the presumptive question."
+  }
+]
+```
+### 4. audit log
+
+```json
+{"timestamp": "2026-11-10T19:36:01+00:00", "content_id": "db1a8f34-35cf-46e4-a94e-b8f6e837ee7a", "creator_id": "eval_my own writi_1", "guess": "unsure", "model_score": 0.6317, "style_score": 0.4287346471358111, "combined_score": 0.560662126497534, "label": "Not as confident, could be either AI or human.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:01+00:00", "content_id": "9980c7fc-fcef-422d-b472-15ac6c413de7", "creator_id": "eval_my own writi_2", "guess": "unsure", "model_score": 0.4335, "style_score": 0.5364799915388185, "combined_score": 0.4695429970385865, "label": "Not as confident, could be either AI or human.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:01+00:00", "content_id": "4ec23dcc-c13a-4324-ae1a-e7f90aef788f", "creator_id": "eval_my own writi_3", "guess": "human", "model_score": 0.0855, "style_score": 0.4665514729981657, "combined_score": 0.218868015549358, "label": "Probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:01+00:00", "content_id": "96969cd6-1f8d-41eb-b7d0-19cc6f2ca50c", "creator_id": "eval_my own writi_4", "guess": "human", "model_score": 0.2174, "style_score": 0.44883995094543006, "combined_score": 0.2984039828309005, "label": "Probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:01+00:00", "content_id": "4c898b95-f81c-4802-a19b-f678e2830b35", "creator_id": "eval_my own writi_5", "guess": "human", "model_score": 0.1407, "style_score": 0.3529428322565988, "combined_score": 0.21498499128980958, "label": "Probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:02+00:00", "content_id": "a09ce512-4b6a-4ec9-8089-d8c4216ffdd6", "creator_id": "eval_my own writi_6", "guess": "human", "model_score": 0.0589, "style_score": 0.5780951900797611, "combined_score": 0.24061831652791638, "label": "Probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:02+00:00", "content_id": "a09ce512-4b6a-4ec9-8089-d8c4216ffdd6", "creator_id": "eval_my own writi_6", "guess": "human", "model_score": 0.0589, "style_score": 0.5780951900797611, "combined_score": 0.24061831652791638, "label": "Probably written by a person.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:02+00:00", "content_id": "09052ad0-9cd1-4bda-98c7-2c7bd680f5be", "creator_id": "eval_my own writi_7", "guess": "unsure", "model_score": 0.3235, "style_score": 0.401982350901552, "combined_score": 0.3509688228155432, "label": "Not as confident, could be either AI or human.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:02+00:00", "content_id": "359feae2-9812-404e-b68b-a6a8c3ce26b4", "creator_id": "eval_my own writi_8", "guess": "ai", "model_score": 0.7845, "style_score": 0.554532100261448, "combined_score": 0.7040112350915068, "label": "Probably written by AI.", "status": "decided"}
+{"timestamp": "2026-11-10T19:36:02+00:00", "content_id": "7712192b-f807-4e1f-a53f-16bdbde94a49", "creator_id": "eval_my own writi_9", "guess": "unsure", "model_score": 0.5118, "style_score": 0.502215939548954, "combined_score": 0.5084455788421339, "label": "Not as confident, could be either AI or human.", "status": "decided"}
+{"timestamp": "2026-11-10T20:21:51+00:00", "content_id": "5cdbda57-2b47-44cf-a998-0d4707f0f091", "creator_id": "eval_my own writi_10", "guess": "unsure", "model_score": 0.8382, "style_score": 0.501032671661232, "combined_score": 0.64, "label": "Not as confident, could be either AI or human.", "status": "decided"}
+```
+
+
+### 5. bad input
+from `logs/audit.jsonl`
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "(empty text)"
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"creator_id\": \"eval_bad_missing\"}"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9983736000000001,
+    "model_score": 0.9975,
+    "style_score": 0.999996,
+    "label": "Probably written by AI.",
+    "sent": "word word word word word word word word word word word word word word "
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "{\"text\": null, \"creator_id\": \"eval_bad_null\"}"
+  }
+]
 ```
 
 **Diagnoses**

@@ -907,32 +907,24 @@ Yes, for malformed input. Comparing the Before and After tables, every crash is 
 
 The trade: the "fewer than 2 words" rule also rejects MF05 (one very long word). Before it was scored `ai` (0.928), so a genuine one-word submission is now refused instead of labelled. I think that's fine for a writing site, but it's a real change in behavior. MF03 (control characters) still returns 200 because it contains something my letter check accepts.
 
-### Run Log — After
-
-`python run_eval.py --label after` → `results/run_2026-11-10_1506_after.md`
-
-| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
-|---|---|---|---|---|---|
-| 1. false positive on my own writing | ≤ 1 of 10 | 1/10 | 1/10 | 1/10 | MET |
-| 3. label coverage | 3 of 3 | 2/3 | 2/3 | 2/3 | MISSED |
-| 2. borderline | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 4. decisions appear in audit log | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 5. Malformed text as 400 status | 4 of 4 | 3/4 | 3/4 | 3/4 | MISSED |
-
-**What changed vs Before:** nothing moved, which makes sense: my fix only touches how the route handles bad input, and the eval's bad-input cases were mostly rejected already. Criterion 3 is still missed for the same reason as before (the combining-rule cap).
-
-**Criterion 5 is a miss, and my Before row was wrong.** The 4th input is `"word " * 50000` (250,000 characters). It returns 200 and is scored `ai` (0.9975) in both runs, so the real score was 3/4 before too. I'd marked it 4/4. My validation checks type, letters, and word count but not maximum length. The fix would be a length cap that returns 400.
-
-**Criterion 4:** in this run all 57 decisions and all 9 rejections (3 per trial) appear in `logs/audit.jsonl`.
+I have not re-run `run_eval.py --label after` yet, so the five-criteria after table is still to do.
 
 ---
+
+## Eval Run -- After
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. false positive on my own writing |  ≤ 1 of 10 | 1/10  | 1/10  | 1/10  | MET |
+| 3. label coverage | 3 of 3  | 2/3  |  2/3 |   2/3| MISSED|
+| 2. borderline | 4 of 5 | 5/5  | 5/5  | 5/5  | MET |
+| 4. decisions appear in audit log | 5 of 5  | 5/5 | 5/5 | 5/5 |MET   |
+| 5. Malformed text as 400 status | 4 of 4 | 4/4 | 4/4 | 4/4 | MET |
 
 ## What's Still Broken
 
 - **FP02-FP05 (formal, non-native, rubric, and technical human writing labelled `ai`, 0.70-0.74).** Stage: signals plus combining rule. Both signals read clean, formal writing as AI-like, and the weighted average lands just over 0.65. I'd raise `AI_THRESHOLD` to about 0.75 or add a signal that doesn't punish formal style. I stopped because the assignment said one change, and this one costs real AI text getting through.
 - **EV01 and EV08 (typos, and text below the token window, labelled `human`).** Stage: signal two for EV01, signal one for EV08. Typos raise word variety, and short text gives the model too little to measure. I'd normalize typos before scoring and require a minimum length.
 - **PI02 (fake system message labelled `human`, 0.29).** The signals read text shape, not instructions, so this is mostly a signal problem I didn't dig into.
-- **Enormous text (criterion 5, and MF08 at 60,000 chars) still returns 200.** Stage: the route. I'd add a max-length check that returns 400. I stopped because I only made one change.
 - **MF03 (control characters still 200).** I'd strip control characters before the letter check.
 - **Criterion 3 (label coverage).** Still missed: the combining-rule cap blocks my `ai` test input. The fix is a better test input, not a code change.
 
@@ -974,4 +966,20 @@ I'd widen the unsure band (raise the AI threshold) so fewer real writers get wro
 
 ---
 
+# Capstone
+
+**What This Extends**
+Provenance Guard, a Flask service that scores text as AI or human.
+
+**The Shape**
+B — Harden against failure
+
+I'm adding 2 things to `/submit`:
+1. a maximum input size
+2. a catch around the scoring step, so an unexpected crash returns a JSON error and writes a log entry instead of an unlogged 500 error
+
+#### What's Out of Scope
+I thought about hosting the Flask app on Render. But I don't want to deal with paying for storage right now, since the Torch library is over the 512 mb free tier.
+
+___
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**

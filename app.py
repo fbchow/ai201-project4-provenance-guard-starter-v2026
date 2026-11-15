@@ -225,6 +225,8 @@ def submit():
         return reject("text must contain letters", creator_id)
     if len(text.split()) < 2:
         return reject("text is too short to score", creator_id)
+    if len(text.split()) > 30000:
+        return reject("text is too long to score", creator_id)
 
     model_score = model_signal(text)
     style_score = style_signal(text)

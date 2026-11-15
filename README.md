@@ -1,8 +1,12 @@
 # Provenance Guard
 
----
+___
+📖 **How to run this project: [RUNNING.md](RUNNING.md)**
+
+___
 
 ## What This Does
+
 1. User submits a JSON paylod with text and a creator_id.
 2. The text perlexity score is calculated and converted to an interpretable model signal score.
 3. The decision is logged.
@@ -968,18 +972,18 @@ I'd widen the unsure band (raise the AI threshold) so fewer real writers get wro
 
 # Capstone
 
-**What This Extends**
+#### What This Extends
 Provenance Guard, a Flask service that scores text as AI or human.
 
-**The Shape**
+#### The Shape
 B — Harden against failure
 
 I'm adding 2 things to `/submit`:
+
 1. a maximum input size
+   1. I set the limit to 30,000 words based on the [guide from Turnitin](https://guides.turnitin.com/hc/en-us/articles/22774058814093-Using-the-AI-Writing-Report#h_01J67T5C69R41QWVG506NMEB9F), a popular software used to detect AI writing in schools.
 2. a catch around the scoring step, so an unexpected crash returns a JSON error and writes a log entry instead of an unlogged 500 error
 
 #### What's Out of Scope
-I thought about hosting the Flask app on Render. But I don't want to deal with paying for storage right now, since the Torch library is over the 512 mb free tier.
 
-___
-📖 **How to run this project: [RUNNING.md](RUNNING.md)**
+I thought about hosting the Flask app on Render. But I don't want to deal with paying for storage right now, since the Torch library is over the 512 mb free tier.

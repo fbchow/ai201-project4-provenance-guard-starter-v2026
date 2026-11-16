@@ -203,6 +203,8 @@ def submit():
     a malformed input is one of the most common real failures there is.
     """
     content_id = str(uuid.uuid4())
+    MIN_WORDS = 2
+    MAX_WORDS = 5000
    
     # Validate the request BEFORE any signal sees it. Every rejection is a 400
     # and is written to the audit log.
@@ -223,14 +225,24 @@ def submit():
         return reject("text must be a non-empty string", creator_id)
     if not any(c.isalpha() for c in text):
         return reject("text must contain letters", creator_id)
-    if len(text.split()) < 2:
+    if len(text.split()) < MIN_WORDS:
         return reject("text is too short to score", creator_id)
-    if len(text.split()) > 30000:
+    if len(text.split()) > MAX_WORDS:
         return reject("text is too long to score", creator_id)
 
-    model_score = model_signal(text)
-    style_score = style_signal(text)
-    combined = combine_signals(model_score, style_score)
+    try:
+        model_score = model_signal(text)
+        style_score = style_signal(text)
+        combined = combine_signals(model_score, style_score)
+    except Exception as exc:
+        audit.log_rejection(creator_id, 
+                            "scoring failed", 
+                            content_id=content_id, 
+                            error=f"{type(exc).__name__}:{exc}")
+        app.logger.exception("scoring failed for %s", content_id)
+        return jsonify({"error": "scoring failed", "content_id": content_id}), 500
+
+
 
     guess, label = score_to_label(combined)
 

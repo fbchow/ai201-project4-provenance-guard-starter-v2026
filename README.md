@@ -981,7 +981,9 @@ B — Harden against failure
 I'm adding 2 things to `/submit`:
 
 1. a maximum input size
-   1. I set the limit to 30,000 words based on the [guide from Turnitin](https://guides.turnitin.com/hc/en-us/articles/22774058814093-Using-the-AI-Writing-Report#h_01J67T5C69R41QWVG506NMEB9F), a popular software used to detect AI writing in schools.
+  - I set the limit to 5,000 words.
+  - This raises a 400 error and avoids scoring a super long text. 
+  - For example: the MF08 attack from `data/attacks.csv` is over 60,000 characters and predicted as "probably ai." We want to avoid scoring this text all together.
 2. a catch around the scoring step, so an unexpected crash returns a JSON error and writes a log entry instead of an unlogged 500 error
 
 #### What's Out of Scope

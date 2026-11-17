@@ -972,10 +972,10 @@ I'd widen the unsure band (raise the AI threshold) so fewer real writers get wro
 
 # Capstone
 
-#### What This Extends
+## What This Extends
 Provenance Guard, a Flask service that scores text as AI or human.
 
-#### The Shape
+## The Shape
 B — Harden against failure
 
 I'm adding 2 things to `/submit`:
@@ -986,6 +986,42 @@ I'm adding 2 things to `/submit`:
   - For example: the MF08 attack from `data/attacks.csv` is over 60,000 characters and predicted as "probably ai." We want to avoid scoring this text all together.
 2. a catch around the scoring step, so an unexpected crash returns a JSON error and writes a log entry instead of an unlogged 500 error
 
-#### What's Out of Scope
+## What's Out of Scope
 
 I thought about hosting the Flask app on Render. But I don't want to deal with paying for storage right now, since the Torch library is over the 512 mb free tier.
+
+## Instrumentation
+A failed run's log, which has the:
+- http status
+- duration in milliseconds
+- input length (number of characters)
+
+``` bash
+curl -s -X POST localhost:5000/submit -H 'Content-Type: application/json' \
+  -d '{"creator_id":"fanny","text":"hi"}
+```
+
+```bash
+{"timestamp": "2026-11-17T17:54:46+00:00", "creator_id": "fanny", "event": "rejected", "status": "rejected", "reason": "text is too short to score", "http_status": 400, "duration_ms": 0.09, "input_chars": 2}
+```
+
+## What It Costs
+
+I wrote a script `cost.py` which runs this query 10 times. The calculate the average run time in milliseconds.
+
+```bash
+curl -s -X POST localhost:5000/submit -H 'Content-Type: application/json'r_id":"Loren Ipsum","text":"The quick brown fox jumps over the lazy dog."}
+```
+
+The average time was 763.847 milliseconds. It takes about 7 seconds to run the average query.
+
+
+
+
+
+
+
+
+
+
+

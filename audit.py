@@ -108,6 +108,7 @@ def log_rejection(creator_id: str, reason: str, **extra) -> dict:
         "event": "rejected",
         "status": "rejected",
         "reason": reason,
+        
         **extra,
     })
 

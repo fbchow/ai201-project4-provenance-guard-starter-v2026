@@ -23,15 +23,17 @@ Routes:
     GET  /log         the audit log. Already works
     GET  /health      is the service up, and is the model loaded
 """
+from flask import Flask, jsonify, request
+import time
+import uuid
 import audit
 import config
-import uuid
 
 from detector import model_signal
 from scoring import score_to_label
 from scoring import combine_signals
 from stylometry import style_signal
-from flask import Flask, jsonify, request
+
 
 
 
@@ -108,6 +110,7 @@ if config.RATE_LIMITING_ENABLED:
         if not isinstance(payload, dict):
             payload = {}
         audit.log_rejection(
+            http_status = 429,
             creator_id=payload.get("creator_id", "unknown"),
             reason="rate_limited",
             limit=str(exc.description),
@@ -202,6 +205,15 @@ def submit():
     what should this do when `text` is missing, empty, or enormous? A crash on
     a malformed input is one of the most common real failures there is.
     """
+    started = time.perf_counter()
+    text = None
+
+    def timing():
+        return{
+            "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+            "input_chars": len(text) if isinstance(text, str) else None,
+        }
+
     content_id = str(uuid.uuid4())
     MIN_WORDS = 2
     MAX_WORDS = 5000
@@ -209,7 +221,10 @@ def submit():
     # Validate the request BEFORE any signal sees it. Every rejection is a 400
     # and is written to the audit log.
     def reject(reason, creator=None):
-        audit.log_rejection(creator if isinstance(creator, str) else None, reason)
+        audit.log_rejection(creator if isinstance(creator, str) else None, 
+                            reason, 
+                            http_status = 400,
+                            **timing())
         return jsonify({"error": reason}), 400
 
     payload = request.get_json(silent=True)
@@ -235,10 +250,16 @@ def submit():
         style_score = style_signal(text)
         combined = combine_signals(model_score, style_score)
     except Exception as exc:
-        audit.log_rejection(creator_id, 
-                            "scoring failed", 
-                            content_id=content_id, 
-                            error=f"{type(exc).__name__}:{exc}")
+        audit.log_rejection(
+            creator_id,
+            "scoring failed",
+            event = "error",
+            status = "error",
+            http_status = 500,
+            content_id=content_id, 
+            error=f"{type(exc).__name__}:{exc}",
+            **timing(),
+        )
         app.logger.exception("scoring failed for %s", content_id)
         return jsonify({"error": "scoring failed", "content_id": content_id}), 500
 
@@ -254,7 +275,8 @@ def submit():
         style_score = style_score,
         combined_score = combined,
         label = label,
-        status = "decided")
+        status = "decided",
+        **timing())
 
     return jsonify({
         "content_id": content_id,

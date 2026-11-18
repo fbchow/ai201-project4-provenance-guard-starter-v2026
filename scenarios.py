@@ -24,24 +24,42 @@ A scenario carries **either** of these:
 
 SCENARIOS = [
     {
-        "name": "my own writing",
+        
+        "name": "too long",
         "criterion": 1,
-        "texts": [
-            "I'm trying my best sometimes. It's so hard :(. Sometimes I get overtaken by sadness and I feel so scared of my future. It all feels so bleak and hopeless.",
-            "I wonder what type of person I'll be in the future. It's hard to discern how I will be like in 5 years let alone next month. When it starts become dark and fall comes, we start questioning who we are. and the rush to the holidays begins.",
-            "Hey guys! i created a group caht to talk about our performance next week. i posted some example coreo pix. I was hoping that we could do a dark clown vibe aesthetic for our makeup. actually on 2nd thot, lol i was hopeing someone in the grou would be more konwledgeable but a week isn't enough time to youtube it. 🤣",
-            "hey gurlie pop! i just was wondering if youd have some time next week to grab boba and hangout. i missed you & I was wondering how ya doing. no pressure if you're busy!",
-            "Hi Jane Doe! wassup! we haven't chatted in a hot minute :P, ifyou're free next week, let's grab lunch or coffee. i have been in cavewomen mode for awhile but now i wanna see ya'll!",
-            "AFter day light savings, the days rush into a dark abyss. but there is hope and solace that a new future will commence. MAriah Carey starts playing on the radio as if to bludgeon your soul into adapting the christmas vibes. whatever happened to a slow burn towards el otono?",
-            "¿Preguntas? ¡hola señorita juanita! Cómo está, bien usted. Altavaz? here you come again! Man I had so many questions for you. I wanted to find the root of it all.",
-            "This is my straightforward, robotic voice. Why would I lie to you? I have nothing to hide from you. I'm engaging with you like a human-being. Why would I have anything to hide? I'm being real, really real.",
-            "Yesterday, I saw my friend's dance performance. He was spectacular and strong. I admired his artistic spirit.",
-            "Yes, I agree to this contract. Yes, I agree to these conditions. Sure, that sounds good."
+        "bodies": [
+            {"text": "word " * 5001,  "creator_id": "eval_long_1"},   # just over the limit
+            {"text": "word " * 10000, "creator_id": "eval_long_2"},
+            {"text": "word " * 50000, "creator_id": "eval_long_3"},
         ],
     },
-        {
-        "name": "label coverage",
+        # Criterion 2 (scoring failure -> 500) is tested by hand: it needs the
+    # signal functions to raise, which no input can cause.
+    {
+        # Restart app.py first. Request 1 of trial 1 is the cold start and is
+        # not counted; judge log_duration_ms on the rest.
+        "name": "warm latency",
         "criterion": 3,
+        "texts": [
+            ("The committee met on Tuesday to review the proposal for the new "
+             "community garden. Several neighbors spoke in favor, citing the lack "
+             "of green space nearby, while others worried about parking and noise. "
+             "After an hour of discussion, the chair suggested a trial season and "
+             "a follow-up meeting in the spring. ") * 6
+        ] * 5,
+    },
+    {
+        "name": "input_chars",
+        "criterion": 5,
+        "bodies": [
+            {"text": ("word " * 10)[:50],     "creator_id": "eval_chars_50"},
+            {"text": ("word " * 100)[:500],   "creator_id": "eval_chars_500"},
+            {"text": ("word " * 1000)[:5000], "creator_id": "eval_chars_5000"},
+        ],
+    },
+    {
+        "name": "label coverage",
+        "criterion": 4,
         # Inputs spread across your score range, so you can check all three
         # labels are actually reachable.
         "texts": [
@@ -50,32 +68,6 @@ SCENARIOS = [
             "To be or not to be, that is the presumptive question.",
         ],
     },
-    {
-        "name": "borderline",
-        "criterion": 2,
-        # text that is considered borderline
-        "texts": [
-            "That contrast is real — a 3-hour round trip for 2 hours of work and $50 is a rough trade on paper, and it makes sense that it’d throw the old remote setup into relief.",
-            "It makes complete sense that this feels hard — asking for help can feel vulnerable, especially after a career break. But you got to try.",
-            "Referrals are usually most effective when they’re specific and easy to act on — you’re not asking your colleague to vouch for your whole career, just to forward your resume or say a good word internally. It's not that deep.",
-            "You don’t have to do it every day either — even two or three mornings a week with a consistent spot and a consistent time could be enough to break the “don’t know what to do once I’m up” feeling. It's not all or nothing.",
-            "To be or not to be, that is the presumptive question.",
-        ],
-    },
-    # A bad-input criterion looks like this. Uncomment and adjust if that's one
-    # of your five — these are raw request bodies, sent exactly as written.
-    
-    {
-        "name": "bad input",
-        "criterion": 5,
-        "bodies": [
-            {"text": "", "creator_id": "eval_bad_empty"},
-            {"creator_id": "eval_bad_missing"},          # no text field at all
-            {"text": "word " * 50000, "creator_id": "eval_bad_huge"},
-            {"text": None, "creator_id": "eval_bad_null"},
-        ],
-    },
-
     # TODO: add what your remaining criteria need.
     #
     # A criterion about the appeal path can't be tested by sending text alone;

@@ -1015,8 +1015,821 @@ curl -s -X POST localhost:5000/submit -H 'Content-Type: application/json'r_id":"
 The average time was 763.847 milliseconds. It takes about 0.76 seconds to run the average query.
 
 
+## Evaluation -- Before
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. too long | 3/3 | 3/3  | 3/3  | 3/3  | MET |
+| 2. 500 errors logged |3/3  |   |   |   |  |
+| 3. warm latency |4/4  |  4/4 | 4/4  |4/4   | MET |
+| 5. input_chars | 3/3 | 3/3  | 3/3  | 3/3  | MET |
+| 4. label coverage | 3/3 | 2/3  | 2/3  |2/3   | MISSED |
+
+For criterion 2, run 3 times:
+
+```bash
+pytest test_submit_crash.py -v
+```
+
+Produces `test_output/test_audit.jsonl`
+
+### trial 1
+
+```json
+{"timestamp": "2026-11-18T05:59:40+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "7f230a4c-f87b-453d-b1d6-99772a6150c5", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+{"timestamp": "2026-11-18T05:59:40+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "c2290fe6-3a5a-4664-a9e6-429d6e8d2a13", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+{"timestamp": "2026-11-18T05:59:40+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "8a063a49-53f1-4af2-92dd-e065aac8a895", "error": "RuntimeError:simulated crash", "duration_ms": 0.04, "input_chars": 17}
+```
+
+### trial 2
+```json
+{"timestamp": "2026-11-18T06:01:29+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "81fdd85d-25a6-442a-b518-b8b7e9b9f397", "error": "RuntimeError:simulated crash", "duration_ms": 0.09, "input_chars": 17}
+{"timestamp": "2026-11-18T06:01:29+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "f400b2a2-1dbe-4608-9d94-663cc28ecc86", "error": "RuntimeError:simulated crash", "duration_ms": 0.07, "input_chars": 17}
+{"timestamp": "2026-11-18T06:01:29+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "37676261-ccfa-449a-9975-394157a98af7", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+```
+
+### trial 3
+
+```json
+
+{"timestamp": "2026-11-18T06:03:35+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "8a9a62da-939c-47d7-b5d0-218cda35d89e", "error": "RuntimeError:simulated crash", "duration_ms": 0.11, "input_chars": 17}
+{"timestamp": "2026-11-18T06:03:35+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "be105fd3-76f6-4252-bf66-665cb6c370f6", "error": "RuntimeError:simulated crash", "duration_ms": 0.04, "input_chars": 17}
+{"timestamp": "2026-11-18T06:03:35+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "33430b43-4e91-4fe4-a568-88b72903ad1d", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+```
 
 
+
+Runs criterion 1, 3, 4, 5:
+
+```bash
+python run_eval.py --label before
+```
+Output to `results/run_2026-11-17_1902_before.md`:
+
+
+### too long
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 25005,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 0.59,
+    "log_input_chars": 25005
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 50000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.34,
+    "log_input_chars": 50000
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 250000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 7.43,
+    "log_input_chars": 250000
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 25005,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 0.47,
+    "log_input_chars": 25005
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 50000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.49,
+    "log_input_chars": 50000
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 250000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 6.61,
+    "log_input_chars": 250000
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 25005,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.31,
+    "log_input_chars": 25005
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 50000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.06,
+    "log_input_chars": 50000
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 250000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 9.64,
+    "log_input_chars": 250000
+  }
+]
+```
+
+### warm latency
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 12799.11,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 794.51,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 742.78,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 671.64,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 714.43,
+    "log_input_chars": 1824
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 835.27,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 804.44,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 853.5,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 934.39,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 1106.92,
+    "log_input_chars": 1824
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 794.88,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 759.51,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 779.57,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 750.47,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 742.62,
+    "log_input_chars": 1824
+  }
+]
+```
+
+### input_chars
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.6658,
+    "style_score": 0.9800000000000001,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "word word word word word word word word word word ",
+    "sent_chars": 50,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 98.67,
+    "log_input_chars": 50
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.996505,
+    "model_score": 0.9957,
+    "style_score": 0.9980000000000001,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 500,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 252.91,
+    "log_input_chars": 500
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.998305,
+    "model_score": 0.9975,
+    "style_score": 0.9998,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 5000,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 856.95,
+    "log_input_chars": 5000
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.6658,
+    "style_score": 0.9800000000000001,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "word word word word word word word word word word ",
+    "sent_chars": 50,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 136.7,
+    "log_input_chars": 50
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.996505,
+    "model_score": 0.9957,
+    "style_score": 0.9980000000000001,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 500,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 246.09,
+    "log_input_chars": 500
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.998305,
+    "model_score": 0.9975,
+    "style_score": 0.9998,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 5000,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 861.9,
+    "log_input_chars": 5000
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.6658,
+    "style_score": 0.9800000000000001,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "word word word word word word word word word word ",
+    "sent_chars": 50,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 111.04,
+    "log_input_chars": 50
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.996505,
+    "model_score": 0.9957,
+    "style_score": 0.9980000000000001,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 500,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 292.82,
+    "log_input_chars": 500
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.998305,
+    "model_score": 0.9975,
+    "style_score": 0.9998,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 5000,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 1161.0,
+    "log_input_chars": 5000
+  }
+]
+```
+
+### label coverage
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "error": null,
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5",
+    "sent_chars": 274,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 223.99,
+    "log_input_chars": 274
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "I don't know who I will be in the future, and this is scary. I think i",
+    "sent_chars": 88,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 108.95,
+    "log_input_chars": 88
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "To be or not to be, that is the presumptive question.",
+    "sent_chars": 53,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 88.22,
+    "log_input_chars": 53
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "error": null,
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5",
+    "sent_chars": 274,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 195.72,
+    "log_input_chars": 274
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "I don't know who I will be in the future, and this is scary. I think i",
+    "sent_chars": 88,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 106.91,
+    "log_input_chars": 88
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "To be or not to be, that is the presumptive question.",
+    "sent_chars": 53,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 86.49,
+    "log_input_chars": 53
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "error": null,
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5",
+    "sent_chars": 274,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 194.97,
+    "log_input_chars": 274
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "I don't know who I will be in the future, and this is scary. I think i",
+    "sent_chars": 88,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 104.17,
+    "log_input_chars": 88
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "To be or not to be, that is the presumptive question.",
+    "sent_chars": 53,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 83.75,
+    "log_input_chars": 53
+  }
+]
+```
 
 
 

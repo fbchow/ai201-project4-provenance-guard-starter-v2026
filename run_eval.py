@@ -66,6 +66,26 @@ def describe(body):
     return json.dumps(body)[:120]
 
 
+def latest_log_fields(url):
+    """
+    The newest /log entry, as log_* fields. Runs are sequential, so the newest
+    entry is the one the request just wrote. A failure here must not abort the run.
+    """
+    import requests
+    try:
+        entries = requests.get(f"{url}/log", params={"limit": 1}, timeout=10).json()["entries"]
+        entry = entries[-1] if entries else {}
+    except Exception as exc:  # noqa: BLE001
+        return {"log_error": f"{type(exc).__name__}: {exc}"}
+    return {
+        "log_event": entry.get("event"),
+        "log_status": entry.get("status"),
+        "log_reason": entry.get("reason"),
+        "log_duration_ms": entry.get("duration_ms"),
+        "log_input_chars": entry.get("input_chars"),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -126,7 +146,11 @@ def main():
                         "model_score": payload.get("model_score"),
                         "style_score": payload.get("style_score"),
                         "label": payload.get("label"),
+                        "error": payload.get("error"),
                         "sent": preview,
+                        "sent_chars": (len(body["text"])
+                                       if isinstance(body.get("text"), str) else None),
+                        **latest_log_fields(args.url),
                     })
                 except Exception as exc:  # noqa: BLE001
                     results.append({"status": None, "error": f"{type(exc).__name__}: {exc}",

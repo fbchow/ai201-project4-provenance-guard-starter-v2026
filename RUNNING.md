@@ -73,7 +73,7 @@ Then try the route you're going to build:
 ```bash
 curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "some writing", "creator_id": "me"}'
+  -d '{"text": "some writing, yes queen just be the best you. and if they argue, then let the me be an dhave peace. my barnd of crazy is priceless!", "creator_id": "me"}'
 ```
 
 It returns a `501` saying it isn't built yet. **That's the correct starting
@@ -99,6 +99,7 @@ position.**
 |---|---|
 | `python test.py` | Checks your environment |
 | `python app.py` | Runs the service |
+| `pytest test_submit_crash.py -v` | Simulates a 500 crash in `/submit` and checks it is logged as an error (see below) |
 | `python detector.py` | Downloads the model and scores a sample — **run before class** |
 | `python detector.py "some text"` | Score one piece of text from the terminal |
 | `python stylometry.py "some text"` | Your style measures, on one piece of text |
@@ -150,6 +151,32 @@ one signal. Then log it.
 > Test each signal from a terminal on its own before wiring it in. If you skip
 > that you'll spend an hour not knowing whether the route or the signal is
 > lying to you.
+
+---
+
+## Testing the 500 error path
+
+`test_submit_crash.py` checks that a crash inside `/submit` is handled
+properly. For each of `model_signal`, `style_signal` and `combine_signals`,
+it forces that one function to raise an error, then checks that:
+
+- the client gets a JSON `500` with `"error": "scoring failed"`, not Flask's
+  HTML error page, and the exception text doesn't leak into the response;
+- the audit log gets an entry with `event: "error"`, `http_status: 500` and an
+  `error` field starting with `RuntimeError`;
+- a plain `400` (empty text) is still logged as `rejected`, so the two cases
+  can be told apart.
+
+Run it with:
+
+```bash
+pytest test_submit_crash.py -v
+```
+
+The tests write to a temporary log, `test_output/test_audit.jsonl`, and never
+touch your real `logs/audit.jsonl`. That file is appended to on every run and
+never cleared, so open it afterwards to see the simulated 500 entries. The real
+model isn't loaded, so the tests run fast.
 
 ---
 
@@ -248,7 +275,9 @@ your write-up; that's the deliverable.
 | `run_eval.py` | Runs your criteria three times — **unit 8** |
 | `scenarios.py` | What your test runs. **You fill this in** |
 | `criteria.md` | Your five criteria. **You write all five** |
+| `test_submit_crash.py` | pytest: simulates a 500 in `/submit` and checks the log |
 | `logs/audit.jsonl` | Your audit log. **Commit it** |
+| `test_output/test_audit.jsonl` | Temp log written by `test_submit_crash.py` |
 | `results/` | Attack runs and run logs. **Commit them** |
 
 ---

@@ -64,7 +64,7 @@ SCENARIOS = [
         # labels are actually reachable.
         "texts": [
             "That contrast is real — a 3-hour round trip for 2 hours of work and $50 is a rough trade on paper, and it makes sense that it’d throw the old remote setup into relief. At least the bus ride being easy and it only being 3 mornings a week keeps it from eating your whole week.",
-            "I don't know who I will be in the future, and this is scary. I think it'll be all right.",
+            "Artificial intelligence is transforming the way we live and work in numerous ways. It offers significant benefits across a wide range of industries, including healthcare, education, and finance. Moreover, it is important to consider the ethical implications of these technologies. By fostering collaboration between researchers, policymakers, and the public, we can ensure that AI develops in a responsible and beneficial manner. In conclusion, the future of AI holds immense potential, provided that we approach it with care and foresight.",
             "To be or not to be, that is the presumptive question.",
         ],
     },

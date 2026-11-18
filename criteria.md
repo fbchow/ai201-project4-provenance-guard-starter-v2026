@@ -19,7 +19,7 @@ than a missed detection"* is a real answer.
 
 ---
 
-## Pick numbers you can defend
+## Part I: Pick numbers you can defend
 
 **Cover at least three of these five areas.** They're prompts, not a form.
 
@@ -86,7 +86,7 @@ Examples include: missing, empty text, missing creator_id.
 **Why this target:**
 We want to make decisions on complete information. We do not want to make decisions without sufficient information. We want the app to flag explicitly as 400 status to say that the input is incorrect.
 
-### before: Appeal always changes status
+### Before: Appeal always changes status
 Every appeal changes status and gets recorded with one new record to the audit log.
 
 **Why this target:**
@@ -125,3 +125,40 @@ An appeal is the only recourse that a wrongly flagged writer has, so it's import
      A number you missed stays where it is, gets diagnosed, and gets a fix
      attempted. That's where the points are.
      ───────────────────────────────────────────────────────────────────────── -->
+
+## Part II: Capstone Project Criteria
+
+## 1. 3 out of 3 text inputs over 5000 words triggers a 400 error and is logged
+
+The text is split by whitespace. Send 3 texts of over 5000 words. Each gets a 400 and `/log` shows a new entry with `event: rejected` and a reason that mentions the word limit.
+
+**Why this target:**
+My `eval_bad_huge` test was accepted and scored as 0.9975, so right now nothing stops an enormous input from reaching the model. 3 out of 3 because the check is a simple length comparison. 5000 words, which is about 10 pages, seems like a reasonable limit.
+
+## 2. 3 out of 3 scoring failures log an `error` entry and return a 500
+
+I force the failure by temporarily making each of `model_signal`, `style_signal`, and `combine_signals` raise an exception, one at a time. Each time a caller gets a 500 with a JSON body and `/log` has a new entry with `event: error` and `status: error`.
+
+**Why this target:**
+Before this change, a crash in `model_signal`, `style_signal`, or `combine_signals` returned an unlogged 500. A failure left no trace at all. 3 out of 3 because an error handler that works only sometimes would still leave silent gaps, which is the problem it addresses.
+
+## 3. All 4 warm runs are 1000 ms or less
+
+Restart the service, then send the text once to load the model (this first cold request is not counted). Then send the same 200-word text 4 more times. Read `duration_ms` from `/log` on the 4 entries after the cold request. 4 out of 4 warm run is 1000 ms or less.
+
+**Why this target:**
+In my trial run, a warm run took about 500 to 535 ms, so 1000 ms leaves roughly 2 times the headroom but would still catch a real slowdown. I'm leaving out the first request, which is a cold start. In my trial, it took 11,627 ms. That first run is about 20 times slower, so it would distort the warm-run result. 4 out of 4 because one slow warm run should count as a miss.
+
+## 4. All 3 labels reachable
+
+Across 3 test inputs I choose, each of `ai`, `human`, and `unsure` is returned at least 1 time.  
+
+**Why this target:**
+Every submission gets a label, so an unreachable one silently distorts the others. If `ai` can't be returned, the detector never does its job. If `human` can't be returned, writers are never cleared and the appeal path absorbs every incorrect flag. If `unsure` can't be reached, borderline text is forced into an accusation or a clearance.
+
+## 5. 3 out of 3 valid text submissions log an `input_chars` value equal to the real text length
+
+Send 3 valid text inputs of known length, exactly 50, 500, and 5000 characters. For each, the matching entry in `/log` has `input_chars` equal to that length.
+
+**Why this target:**
+My rejected entries for empty, missing, and null text all logged the same reason, so I can't tell the cases apart afterward. A length in every entry lets me spot huge text or empty inputs when diagnosing a failure. 3 out of 3 because the value comes from `len(text)`, so any mismatch means there is a bug.

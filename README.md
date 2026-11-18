@@ -970,7 +970,7 @@ I'd widen the unsure band (raise the AI threshold) so fewer real writers get wro
 
 ---
 
-# Capstone
+# Capstone Project
 
 ## What This Extends
 Provenance Guard, a Flask service that scores text as AI or human.
@@ -1012,8 +1012,7 @@ I wrote a script `cost.py` which runs this query 10 times. The calculate the ave
 ```bash
 curl -s -X POST localhost:5000/submit -H 'Content-Type: application/json'r_id":"Loren Ipsum","text":"The quick brown fox jumps over the lazy dog."}
 ```
-
-The average time was 763.847 milliseconds. It takes about 7 seconds to run the average query.
+The average time was 763.847 milliseconds. It takes about 0.76 seconds to run the average query.
 
 
 

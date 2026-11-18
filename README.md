@@ -975,9 +975,6 @@ I'd widen the unsure band (raise the AI threshold) so fewer real writers get wro
 ## What This Extends
 Provenance Guard, a Flask service that scores text as AI or human.
 
-## The Shape
-B — Harden against failure
-
 I'm adding 2 things to `/submit`:
 
 1. a maximum input size
@@ -986,9 +983,33 @@ I'm adding 2 things to `/submit`:
   - For example: the MF08 attack from `data/attacks.csv` is over 60,000 characters and predicted as "probably ai." We want to avoid scoring this text all together.
 2. a catch around the scoring step, so an unexpected crash returns a JSON error and writes a log entry instead of an unlogged 500 error
 
+## The Shape
+B — Harden against failure
+
+
+
 ## What's Out of Scope
 
 I thought about hosting the Flask app on Render. But I don't want to deal with paying for storage right now, since the Torch library is over the 512 mb free tier.
+
+## Running it
+Uses python version 3.13.
+
+Install requirements via:
+```
+pip install requirements.txt
+```
+
+Run the app via:
+```
+python app.py
+```
+
+Run the evaluation data set:
+```
+python run_eval.py
+```
+
 
 ## Instrumentation
 A failed run's log, which has the:
@@ -1852,6 +1873,884 @@ The criterion 3 (label coverage) diagnosis. The failing stage was the combining 
 ### Verdict
 The improvement did not improve the criterion.
 
+### Diagnosis: warm latency (Run 2, 2/4)
+
+In Run 2, two warm requests took 1040 ms and 1085 ms, over the 1000 ms limit. Runs 1 and 3 stayed under it.
+
+It is not a code bug: every request returned the same score with no errors, and the improvement only changed a test input. The cause is a limit set too tight. I assumed warm requests take about 500 ms, but they take 760-850 ms, so 1000 ms leaves little room. Run 2 was also slower on the same input, probably from background load on my laptop (I didn't measure this).
+
+Next step: re-measure the warm baseline on an idle machine and set the limit from that.
+
+## What It Costs
+
+I wrote a script `cost.py` which runs this query 10 times. The calculate the average run time in milliseconds.
+
+```bash
+curl -s -X POST localhost:5000/submit -H 'Content-Type: application/json'r_id":"Loren Ipsum","text":"The quick brown fox jumps over the lazy dog."}
+```
+The average time was 763.847 ms. It takes about 0.76 seconds to run the average query.
+
+
+## Evaluation -- Before
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. too long | 3/3 | 3/3  | 3/3  | 3/3  | MET |
+| 2. 500 errors logged |3/3  | 3/3  | 3/3  | 3/3  | MET  |
+| 3. warm latency |4/4  |  4/4 | 4/4  |4/4   | MET |
+| 5. input_chars | 3/3 | 3/3  | 3/3  | 3/3  | MET |
+| 4. label coverage | 3/3 | 2/3  | 2/3  |2/3   | MISSED |
+
+For criterion 2, run 3 times:
+
+```bash
+pytest test_submit_crash.py -v
+```
+
+Produces `test_output/test_audit.jsonl`
+
+### trial 1
+
+```json
+{"timestamp": "2026-11-18T05:59:40+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "7f230a4c-f87b-453d-b1d6-99772a6150c5", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+{"timestamp": "2026-11-18T05:59:40+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "c2290fe6-3a5a-4664-a9e6-429d6e8d2a13", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+{"timestamp": "2026-11-18T05:59:40+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "8a063a49-53f1-4af2-92dd-e065aac8a895", "error": "RuntimeError:simulated crash", "duration_ms": 0.04, "input_chars": 17}
+```
+
+### trial 2
+```json
+{"timestamp": "2026-11-18T06:01:29+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "81fdd85d-25a6-442a-b518-b8b7e9b9f397", "error": "RuntimeError:simulated crash", "duration_ms": 0.09, "input_chars": 17}
+{"timestamp": "2026-11-18T06:01:29+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "f400b2a2-1dbe-4608-9d94-663cc28ecc86", "error": "RuntimeError:simulated crash", "duration_ms": 0.07, "input_chars": 17}
+{"timestamp": "2026-11-18T06:01:29+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "37676261-ccfa-449a-9975-394157a98af7", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+```
+
+### trial 3
+
+```json
+
+{"timestamp": "2026-11-18T06:03:35+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "8a9a62da-939c-47d7-b5d0-218cda35d89e", "error": "RuntimeError:simulated crash", "duration_ms": 0.11, "input_chars": 17}
+{"timestamp": "2026-11-18T06:03:35+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "be105fd3-76f6-4252-bf66-665cb6c370f6", "error": "RuntimeError:simulated crash", "duration_ms": 0.04, "input_chars": 17}
+{"timestamp": "2026-11-18T06:03:35+00:00", "creator_id": "tester", "event": "error", "status": "error", "reason": "scoring failed", "http_status": 500, "content_id": "33430b43-4e91-4fe4-a568-88b72903ad1d", "error": "RuntimeError:simulated crash", "duration_ms": 0.05, "input_chars": 17}
+```
+
+Runs criterion 1, 3, 4, 5:
+
+```bash
+python run_eval.py --label before
+```
+Output to `results/run_2026-11-17_1902_before.md`:
+
+
+### too long
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 25005,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 0.59,
+    "log_input_chars": 25005
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 50000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.34,
+    "log_input_chars": 50000
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 250000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 7.43,
+    "log_input_chars": 250000
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 25005,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 0.47,
+    "log_input_chars": 25005
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 50000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.49,
+    "log_input_chars": 50000
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 250000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 6.61,
+    "log_input_chars": 250000
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 25005,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.31,
+    "log_input_chars": 25005
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 50000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 1.06,
+    "log_input_chars": 50000
+  },
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "error": "text is too long to score",
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 250000,
+    "log_event": "rejected",
+    "log_status": "rejected",
+    "log_reason": "text is too long to score",
+    "log_duration_ms": 9.64,
+    "log_input_chars": 250000
+  }
+]
+```
+
+### warm latency
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 12799.11,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 794.51,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 742.78,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 671.64,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 714.43,
+    "log_input_chars": 1824
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 835.27,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 804.44,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 853.5,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 934.39,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 1106.92,
+    "log_input_chars": 1824
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 794.88,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 759.51,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 779.57,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 750.47,
+    "log_input_chars": 1824
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.9084736816671848,
+    "model_score": 0.994,
+    "style_score": 0.7496390904776709,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "The committee met on Tuesday to review the proposal for the new commun",
+    "sent_chars": 1824,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 742.62,
+    "log_input_chars": 1824
+  }
+]
+```
+
+### input_chars
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.6658,
+    "style_score": 0.9800000000000001,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "word word word word word word word word word word ",
+    "sent_chars": 50,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 98.67,
+    "log_input_chars": 50
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.996505,
+    "model_score": 0.9957,
+    "style_score": 0.9980000000000001,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 500,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 252.91,
+    "log_input_chars": 500
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.998305,
+    "model_score": 0.9975,
+    "style_score": 0.9998,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 5000,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 856.95,
+    "log_input_chars": 5000
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.6658,
+    "style_score": 0.9800000000000001,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "word word word word word word word word word word ",
+    "sent_chars": 50,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 136.7,
+    "log_input_chars": 50
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.996505,
+    "model_score": 0.9957,
+    "style_score": 0.9980000000000001,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 500,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 246.09,
+    "log_input_chars": 500
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.998305,
+    "model_score": 0.9975,
+    "style_score": 0.9998,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 5000,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 861.9,
+    "log_input_chars": 5000
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.6658,
+    "style_score": 0.9800000000000001,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "word word word word word word word word word word ",
+    "sent_chars": 50,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 111.04,
+    "log_input_chars": 50
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.996505,
+    "model_score": 0.9957,
+    "style_score": 0.9980000000000001,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 500,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 292.82,
+    "log_input_chars": 500
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.998305,
+    "model_score": 0.9975,
+    "style_score": 0.9998,
+    "label": "Probably written by AI.",
+    "error": null,
+    "sent": "word word word word word word word word word word word word word word ",
+    "sent_chars": 5000,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 1161.0,
+    "log_input_chars": 5000
+  }
+]
+```
+
+### label coverage
+
+**Trial 1**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "error": null,
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5",
+    "sent_chars": 274,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 223.99,
+    "log_input_chars": 274
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "I don't know who I will be in the future, and this is scary. I think i",
+    "sent_chars": 88,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 108.95,
+    "log_input_chars": 88
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "To be or not to be, that is the presumptive question.",
+    "sent_chars": 53,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 88.22,
+    "log_input_chars": 53
+  }
+]
+```
+
+**Trial 2**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "error": null,
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5",
+    "sent_chars": 274,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 195.72,
+    "log_input_chars": 274
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "I don't know who I will be in the future, and this is scary. I think i",
+    "sent_chars": 88,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 106.91,
+    "log_input_chars": 88
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "To be or not to be, that is the presumptive question.",
+    "sent_chars": 53,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 86.49,
+    "log_input_chars": 53
+  }
+]
+```
+
+**Trial 3**
+
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.3315861145999151,
+    "model_score": 0.1915,
+    "style_score": 0.5917460417140432,
+    "label": "Probably written by a person.",
+    "error": null,
+    "sent": "That contrast is real \u2014 a 3-hour round trip for 2 hours of work and $5",
+    "sent_chars": 274,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 194.97,
+    "log_input_chars": 274
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.64,
+    "model_score": 0.874,
+    "style_score": 0.4236990570825241,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "I don't know who I will be in the future, and this is scary. I think i",
+    "sent_chars": 88,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 104.17,
+    "log_input_chars": 88
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.6078528437579134,
+    "model_score": 0.6048,
+    "style_score": 0.6135224107368955,
+    "label": "Not as confident, could be either AI or human.",
+    "error": null,
+    "sent": "To be or not to be, that is the presumptive question.",
+    "sent_chars": 53,
+    "log_event": null,
+    "log_status": "decided",
+    "log_reason": null,
+    "log_duration_ms": 83.75,
+    "log_input_chars": 53
+  }
+]
+```
+
+## The Improvement
+
+**What I changed:**
+
+I changed the test input, not the code. In `scenarios.py`, the label coverage scenario's second text ("I don't know who I will be in the future, and this is scary...") is now a longer, formal, AI-style paragraph about AI's benefits and ethics. It is the same text as my sample run (model 0.8421, style 0.5786, combined 0.75, label `ai`). The two signals differ by 0.26, under the 0.30 cap, so the cap doesn't fire. `combine_signals`, `DISAGREEMENT_LIMIT` and `AI_THRESHOLD` are unchanged.
+
+**Which diagnosis pointed at it:**
+
+The criterion 3 (label coverage) diagnosis. The failing stage was the combining rule: my old `ai` input scored model 0.874 and style 0.424. That is a 0.45 split, so the disagreement cap held the score at 0.64 (`unsure`). The cap is intentional and the `ai` label is reachable (FP02-FP05 and MF05-MF08 returned it), so the fault was my input. The fix is an input where both signals run high. I haven't re-run the eval to confirm the new input lands on `ai`. The scores above are from the earlier sample run.
+
+## Evaluation Run -- After
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. too long | 3/3 | 3/3  | 3/3  | 3/3  | MET |
+| 2. 500 errors logged |3/3  | 3/3  | 3/3  | 3/3  | MET  |
+| 3. warm latency |4/4  |  4/4 | 2/4  |4/4   | MISSED |
+| 5. input_chars | 3/3 | 3/3  | 3/3  | 3/3  | MET |
+| 4. label coverage | 3/3 | 2/3  | 2/3  |2/3   | MISSED |
+
+### Verdict
+The improvement did not improve the criterion.
+
+### Diagnosis: warm latency missed in Run 2 (2/4)
+
+Source: `results/run_2026-11-17_2222_after.md`. The criterion is that all 4 warm requests take 1000 ms or less.
+
+| Run | Request 1 (not counted) | Warm requests 2-5 (ms) | Over 1000 ms | Score |
+|---|---|---|---|---|
+| 1 | 10630.82 (cold start) | 777, 806, 759, 850 | 0 | 4/4 |
+| 2 | 926.31 | 988, 958, **1040**, **1085** | 2 | 2/4 |
+| 3 | 889.23 | 917, 971, 856, 867 | 0 | 4/4 |
+
+**What failed:** two warm requests in Run 2 (1039.84 ms and 1084.53 ms) went over the 1000 ms limit. The other two Run 2 requests were within 12-42 ms of it.
+
+**What did not fail:** the service logic. Every request returned the same `model_score` (0.994) and the same 200 response, and no errors were logged. The slow runs were slow with identical work, so this is not a scoring bug, and the improvement (a change to a label-coverage test input) does not touch this code path.
+
+**Most likely cause: too little headroom in the threshold, plus machine noise.**
+- My criteria assumed a warm run takes about 500-535 ms, leaving about 2x headroom. In these runs a warm request takes 760-850 ms even in the good runs, so the headroom is only about 1.2x. The criteria numbers are out of date.
+- Run 2 was about 150-250 ms slower than Run 1 on identical input. Runs 2 and 3 show no cold-start spike on request 1, so the model was already loaded and the extra time is not model loading. I did not record CPU load, so I cannot confirm the cause. Background load on my laptop is the likeliest explanation, and I have not tested it.
+- The criterion is strict on purpose ("one slow warm run counts as a miss"), so a small slowdown at the limit produces a visible fail.
+
+**What this means:** the miss is a real result, but it is a flaky measurement and not a regression. The service passes in 2 of 3 runs.
+
+**Fix to try next:** re-measure the warm baseline on an idle machine and set the limit from that (for example 2x the median warm time, about 1600 ms), or reduce the work per request. I have not changed the threshold or the code.
+
 ## What It Costs
 
 ```bash
@@ -1861,7 +2760,16 @@ From above, the average time was 763.847 ms. For 100 people that would mean a to
 763.847 x 100 people = 76384.7 ms
 
 ## What's Still Broken
-The appeal workflow still needs verification of the status changes and updates.
+The appeal workflow still needs verification of the status changes and updates. Specifically:
+
+1. **The response status doesn't match the log.** `/appeal` returns `"status": "appeal"`, but `audit.log_appeal` writes `under_review`. The writer is told one thing and the log records another, so the criterion "every appeal changes status" can't pass as written.
+2. **No input validation.** A missing `content_id` or `reasoning` goes straight to `entries_for(None)`, and an empty `reasoning` is accepted and logged.
+3. **`creator_id` comes from the last log entry.** If the last entry is an earlier appeal or a rejection, it may carry a different or missing `creator_id`. It should come from the original decision entry.
+4. **Repeat appeals aren't handled.** Appealing the same `content_id` twice logs a duplicate `under_review` entry.
+5. **Not-found returns 400** instead of 404.
+6. **No automated test.** `run_eval.py` and `scenarios.py` don't cover appeals, so this is still unverified.
+
+**First step:** make the `/appeal` response return the same status the log records (`under_review`). Then add a check that submits text, appeals the returned `content_id`, and confirms the response says `under_review` and `/log` gained exactly one new `appeal` entry. That turns "needs verification" into a pass/fail result, and the other fixes can be checked against the same test.
 
 ## How I Used AI
 - Translate criteria to evaluation in `run_eval.py`
